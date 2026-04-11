@@ -1,0 +1,3 @@
+[submodule "guide/lib/jsonwebtoken"]
+	path = guide/lib/jsonwebtoken
+	url = https://github.com/Keats/jsonwebtoken.git

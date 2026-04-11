@@ -12,7 +12,7 @@ This repo includes experiments for Paralegal.
 
 Base:
 
-1. `git clone https://github.com/syrup4u/paralegal.git`
+1. `git clone --recursive https://github.com/syrup4u/paralegal.git`
 2. `cd paralegal; cargo install --locked --path crates/paralegal-flow`
 3. `cargo paralegal-flow --version`
 
