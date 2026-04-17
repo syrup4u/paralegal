@@ -18,4 +18,4 @@ Base:
 
 Move to the directory: `guide/deletion-policy`
 
-By commenting out / back in each test settings, run with `bash run.sh`.
+Run tests with `bash run.sh [test number]`.

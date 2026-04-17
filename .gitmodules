@@ -1,3 +1,6 @@
 [submodule "guide/lib/jsonwebtoken"]
 	path = guide/lib/jsonwebtoken
 	url = https://github.com/Keats/jsonwebtoken.git
+[submodule "guide/lib/p2panda"]
+	path = guide/lib/p2panda
+	url = git@github.com:p2panda/p2panda.git

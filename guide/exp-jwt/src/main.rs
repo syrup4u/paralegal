@@ -30,11 +30,11 @@ fn main() {
         exp: 10000000000,
     };
 
-    // let token = match encode(&Header::default(), &my_claims, &EncodingKey::from_secret(key)) {
-    //     Ok(t) => t,
-    //     Err(_) => panic!(), // in practice you would return the error
-    // };
-    let token = fake_encode(&my_claims);
+    let token = match encode(&Header::default(), &my_claims, &EncodingKey::from_secret(key)) {
+        Ok(t) => t,
+        Err(_) => panic!(), // in practice you would return the error
+    };
+    //let token = fake_encode(&my_claims);
 
     send(&token);
 

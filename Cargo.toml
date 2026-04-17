@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/*"]
+members = ["crates/*", "guide/exp-p2panda"]
 exclude = [
     "props",
     "crates/paralegal-flow/tests",
