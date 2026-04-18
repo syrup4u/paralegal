@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 paralegal = { path = "../../crates/paralegal" }
-p2panda = { path = "../lib/p2panda" }
+p2panda-core = { path = "../lib/p2panda/p2panda-core" }
 serde = { version = "1.0", features = ["derive"] }
 
 [workspace]
