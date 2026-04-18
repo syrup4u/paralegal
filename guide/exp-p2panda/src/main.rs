@@ -67,8 +67,10 @@ fn main() {
         backlink: None,
         extensions: (),
     };
+    
     // header2.sign(&private_key) deliberately omitted
-    let _ = header2;
+    let _ = header2.sign(&private_key);
+
     unsigned_publish(&Operation {
         hash: header2.hash(),
         header: header2,
