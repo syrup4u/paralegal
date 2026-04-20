@@ -2,4 +2,10 @@ Scope:
 Somewhere
 
 Policy:
-1. Each "user_data" marked user_data goes to a "send" marked send only via a "signed" marked signed
+1. For each "user_data" type marked user_data:
+    A. There is a "retrieval" that produces "user_data" where:
+       a. There is a "sign" marked sign where:
+          i) "retrieval" goes to "sign"
+       and
+       b. There is a "send" marked send where:
+          i) "retrieval" goes to "send"

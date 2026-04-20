@@ -1,0 +1,5 @@
+Scope:
+Somewhere
+
+Policy:
+1. Each "user_data" marked user_data goes to a "send" marked send only via a "signed" marked signed

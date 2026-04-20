@@ -1,7 +1,11 @@
 use std::{env, path::Path, process::Command};
 
 fn main() {
-    let p = Path::new("policy.txt");
+    println!("cargo:rerun-if-env-changed=P2PANDA_POLICY_FILE");
+
+    let policy_file =
+        env::var("P2PANDA_POLICY_FILE").unwrap_or_else(|_| "policy.txt".to_string());
+    let p = Path::new(&policy_file);
     println!("cargo:rerun-if-changed={}", p.display());
     let out_dir = env::var_os("OUT_DIR").unwrap();
     let mut out_file = Path::new(&out_dir).join("policy.rs");
