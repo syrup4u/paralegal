@@ -12,7 +12,17 @@ fn publish(_operation: &Operation) {
     todo!()
 }
 
-fn unsigned_publish(_operation: &Operation) {
+// fn unsigned_publish(_operation: &Operation) {
+//     todo!()
+// }
+
+#[paralegal::marker(sign, arguments = [0])]
+fn sign_operation(_operation: &Message) {
+    todo!()
+}
+
+#[paralegal::marker(send, arguments = [0])]
+fn send_message(_msg: &Message) {
     todo!()
 }
 
@@ -25,55 +35,59 @@ fn main() {
         author: "alice".to_string(),
     };
 
-    let body = Body::new(&msg.content);
+    sign_operation(&msg);
 
-    let mut header = Header {
-        version: 1,
-        public_key: private_key.public_key(),
-        signature: None,
-        payload_size: body.size(),
-        payload_hash: Some(body.hash()),
-        timestamp: Timestamp::now(),
-        seq_num: 0,
-        backlink: None,
-        extensions: (),
-    };
+    send_message(&msg);
 
-    // Sign the header so the operation is cryptographically authenticated.
-    header.sign(&private_key);
+    // let body = Body::new(&msg.content);
 
-    let operation = Operation {
-        hash: header.hash(),
-        header,
-        body: Some(body),
-    };
+    // let mut header = Header {
+    //     version: 1,
+    //     public_key: private_key.public_key(),
+    //     signature: None,
+    //     payload_size: body.size(),
+    //     payload_hash: Some(body.hash()),
+    //     timestamp: Timestamp::now(),
+    //     seq_num: 0,
+    //     backlink: None,
+    //     extensions: (),
+    // };
 
-    publish(&operation);
+    // // Sign the header so the operation is cryptographically authenticated.
+    // header.sign(&private_key);
 
-    // Intentional violation: publishing without signing first.
-    let msg2 = Message {
-        content: b"Sneaky message".to_vec(),
-        author: "eve".to_string(),
-    };
-    let body2 = Body::new(&msg2.content);
-    let mut header2 = Header {
-        version: 1,
-        public_key: private_key.public_key(),
-        signature: None,
-        payload_size: body2.size(),
-        payload_hash: Some(body2.hash()),
-        timestamp: Timestamp::now(),
-        seq_num: 1,
-        backlink: None,
-        extensions: (),
-    };
+    // let operation = Operation {
+    //     hash: header.hash(),
+    //     header,
+    //     body: Some(body),
+    // };
+
+    //publish(&operation);
+
+    // // Intentional violation: publishing without signing first.
+    // let msg2 = Message {
+    //     content: b"Sneaky message".to_vec(),
+    //     author: "eve".to_string(),
+    // };
+    // let body2 = Body::new(&msg2.content);
+    // let mut header2 = Header {
+    //     version: 1,
+    //     public_key: private_key.public_key(),
+    //     signature: None,
+    //     payload_size: body2.size(),
+    //     payload_hash: Some(body2.hash()),
+    //     timestamp: Timestamp::now(),
+    //     seq_num: 1,
+    //     backlink: None,
+    //     extensions: (),
+    // };
     
-    // header2.sign(&private_key) deliberately omitted
-    let _ = header2.sign(&private_key);
-
-    unsigned_publish(&Operation {
-        hash: header2.hash(),
-        header: header2,
-        body: Some(body2),
-    });
+    // // header2.sign(&private_key) deliberately omitted
+    // let _ = header2;
+    
+    // unsigned_publish(&Operation {
+    //     hash: header2.hash(),
+    //     header: header2,
+    //     body: Some(body2),
+    // });
 }
