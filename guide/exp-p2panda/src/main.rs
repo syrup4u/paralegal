@@ -1,4 +1,4 @@
-use p2panda_core::{Body, Header, Operation, PrivateKey, Timestamp};
+use p2panda_core::{Operation, PrivateKey};
 
 #[derive(Debug)]
 #[paralegal::marker(user_data)]
@@ -26,17 +26,25 @@ fn send_message(_msg: &Message) {
     todo!()
 }
 
+#[paralegal::marker(publish_check, return)]
+fn allow_publish(msg: &Message) -> bool {
+    !msg.content.is_empty() && !msg.author.is_empty()
+}
+
 #[paralegal::analyze]
 fn main() {
-    let private_key = PrivateKey::new();
+    let _private_key = PrivateKey::new();
 
     let msg = Message {
         content: b"Hello, network!".to_vec(),
         author: "alice".to_string(),
     };
 
-    sign_operation(&msg);
+    if !allow_publish(&msg) {
+        return;
+    }
 
+    sign_operation(&msg);
     send_message(&msg);
 
     // let body = Body::new(&msg.content);

@@ -1,0 +1,7 @@
+Scope:
+Somewhere
+
+Policy:
+1. For each "send" marked send:
+    A. There is a "publish_check" marked publish_check where:
+       a. "publish_check" influences "send"
