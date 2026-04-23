@@ -110,7 +110,7 @@ The result:
 
 ```sh
 error: Failed policy
-note: `Scope somewhere` 
+note: `Scope somewhere`
   failed because no element matched body conditions
 note: `For each "user_data" type marked user_data` (Rule 1)
   failed because of file_db_example::Image
@@ -159,7 +159,7 @@ The result is unexpected because the data of both user1 and user2 are not delete
 
 That's why it can pass the policy.
 
-In summary, Paralegal lacks a support for a policy similar to the below in order to deal with multiple instances: 
+In summary, Paralegal lacks a support for a policy similar to the below in order to deal with multiple instances:
 
 ```text
 Scope:
@@ -200,7 +200,7 @@ The result:
 
 ```sh
 error: Failed policy
-note: `Scope somewhere` 
+note: `Scope somewhere`
   failed because no element matched body conditions
 note: `For each "user_data" type marked user_data` (Rule 1)
   failed because of file_db_example::Image
