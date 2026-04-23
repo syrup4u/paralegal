@@ -16,9 +16,9 @@ fn publish(_operation: &Operation) {
 //     todo!()
 // }
 
-#[paralegal::marker(sign, arguments = [0])]
-fn sign_operation(_operation: &Message) {
-    todo!()
+#[paralegal::marker(signed, arguments = [0])]
+fn sign_operation(_operation: &Message) -> &Message {
+    return _operation; 
 }
 
 #[paralegal::marker(send, arguments = [0])]
@@ -44,8 +44,12 @@ fn main() {
         return;
     }
 
-    sign_operation(&msg);
-    send_message(&msg);
+    /*
+     * The issue is that when A goes to B via C, at the moment A reaches C, C will create
+     * a new instance of A, where the new instance will start fresh and thus the pipeline is broken.
+     */
+    let msg_copy = sign_operation(&msg);
+    send_message(&msg_copy);
 
     // let body = Body::new(&msg.content);
 
