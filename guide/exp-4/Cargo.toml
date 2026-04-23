@@ -1,0 +1,11 @@
+[package]
+name = "jwt-example"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+paralegal = { path = "../../crates/paralegal" }
+jsonwebtoken = { path = "../lib/jsonwebtoken" }
+serde = { version = "1.0", features = ["derive"] }
+
+[workspace]

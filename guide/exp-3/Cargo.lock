@@ -86,6 +86,7 @@ version = "9.3.1"
 dependencies = [
  "base64",
  "js-sys",
+ "paralegal",
  "pem",
  "ring",
  "serde",
