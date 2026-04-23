@@ -1,0 +1,11 @@
+[package]
+name = "exp-p2panda"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+paralegal = { path = "../../crates/paralegal" }
+p2panda-core = { path = "../lib/p2panda/p2panda-core" }
+serde = { version = "1.0", features = ["derive"] }
+
+[workspace]

@@ -34,6 +34,7 @@ Base:
 
 Move to the work directory: `cd guide/policy`
 
+<<<<<<< HEAD
 By commenting out / back in each test settings, run with `bash run.sh`.
 
 ## Used Policies
@@ -247,3 +248,6 @@ This is the supplement test of the [toy case](#original-toy-case). Now it is com
 
 1. Use docker to build the environment.
 2. Test more libraries.
+=======
+Run tests with `bash run.sh [test number]`.
+>>>>>>> e57444009ab977a05a9ab48656a83c0de95e53b9
