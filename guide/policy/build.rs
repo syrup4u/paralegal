@@ -1,7 +1,7 @@
 use std::{env, path::Path, process::Command};
 
 fn main() {
-    let p = Path::new("policy_jwt2.txt");
+    let p = Path::new("policy_ACB.txt");
     println!("cargo:rerun-if-changed={}", p.display());
     let out_dir = env::var_os("OUT_DIR").unwrap();
     let mut out_file = Path::new(&out_dir).join("policy.rs");

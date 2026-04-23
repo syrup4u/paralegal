@@ -55,19 +55,15 @@ impl Document {
 }
 
 #[paralegal::analyze]
-fn delete(user1: User, user2: User) { // Two users
-    // Delete user1's documents
-    for doc in Document::for_user(&user1) {
+fn delete(user: User) {
+    for doc in Document::for_user(&user) {
         doc.delete()
     }
 
-    // Delete user2's images
-    for img in Image::for_user(&user2) {
-        img.delete()
+    // Comment this back in to make the policy pass
+    for img in Image::for_user(&user) {
+        todo!()
     }
-    
-    // And they can pass the check!
-    // Comment any of them out will cause a policy violation.
 }
 
 fn main() {
@@ -75,8 +71,6 @@ fn main() {
 
     match args.next().unwrap().as_str() {
         "delete" => delete(User {
-            name: args.next().unwrap(),
-        }, User {
             name: args.next().unwrap(),
         }),
         other => panic!("Command not implemented {other}"),
