@@ -1,4 +1,4 @@
-use p2panda_core::{Operation, PrivateKey};
+use p2panda_core::{Body, Header, Operation, PrivateKey, Timestamp};
 
 #[derive(Debug)]
 #[paralegal::marker(user_data)]
@@ -12,20 +12,6 @@ fn publish(_operation: &Operation) {
     todo!()
 }
 
-// fn unsigned_publish(_operation: &Operation) {
-//     todo!()
-// }
-
-#[paralegal::marker(signed, arguments = [0])]
-fn sign_operation(_operation: &Message) -> &Message {
-    return _operation; 
-}
-
-#[paralegal::marker(send, arguments = [0])]
-fn send_message(_msg: &Message) {
-    todo!()
-}
-
 #[paralegal::marker(publish_check, return)]
 fn allow_publish(msg: &Message) -> bool {
     !msg.content.is_empty() && !msg.author.is_empty()
@@ -33,7 +19,7 @@ fn allow_publish(msg: &Message) -> bool {
 
 #[paralegal::analyze]
 fn main() {
-    let _private_key = PrivateKey::new();
+    let private_key = PrivateKey::new();
 
     let msg = Message {
         content: b"Hello, network!".to_vec(),
@@ -44,62 +30,27 @@ fn main() {
         return;
     }
 
-    /*
-     * The issue is that when A goes to B via C, at the moment A reaches C, C will create
-     * a new instance of A, where the new instance will start fresh and thus the pipeline is broken.
-     */
-    let msg_copy = sign_operation(&msg);
-    send_message(&msg_copy);
+    let body = Body::new(&msg.content);
+    let mut header = Header {
+        version: 1,
+        public_key: private_key.public_key(),
+        signature: None,
+        payload_size: body.size(),
+        payload_hash: Some(body.hash()),
+        timestamp: Timestamp::now(),
+        seq_num: 0,
+        backlink: None,
+        extensions: (),
+    };
 
-    // let body = Body::new(&msg.content);
+    // Header::sign is marked "sign" via external-annotations.toml
+    header.sign(&private_key);
 
-    // let mut header = Header {
-    //     version: 1,
-    //     public_key: private_key.public_key(),
-    //     signature: None,
-    //     payload_size: body.size(),
-    //     payload_hash: Some(body.hash()),
-    //     timestamp: Timestamp::now(),
-    //     seq_num: 0,
-    //     backlink: None,
-    //     extensions: (),
-    // };
+    let operation = Operation {
+        hash: header.hash(),
+        header,
+        body: Some(body),
+    };
 
-    // // Sign the header so the operation is cryptographically authenticated.
-    // header.sign(&private_key);
-
-    // let operation = Operation {
-    //     hash: header.hash(),
-    //     header,
-    //     body: Some(body),
-    // };
-
-    //publish(&operation);
-
-    // // Intentional violation: publishing without signing first.
-    // let msg2 = Message {
-    //     content: b"Sneaky message".to_vec(),
-    //     author: "eve".to_string(),
-    // };
-    // let body2 = Body::new(&msg2.content);
-    // let mut header2 = Header {
-    //     version: 1,
-    //     public_key: private_key.public_key(),
-    //     signature: None,
-    //     payload_size: body2.size(),
-    //     payload_hash: Some(body2.hash()),
-    //     timestamp: Timestamp::now(),
-    //     seq_num: 1,
-    //     backlink: None,
-    //     extensions: (),
-    // };
-    
-    // // header2.sign(&private_key) deliberately omitted
-    // let _ = header2;
-    
-    // unsigned_publish(&Operation {
-    //     hash: header2.hash(),
-    //     header: header2,
-    //     body: Some(body2),
-    // });
+    publish(&operation);
 }
