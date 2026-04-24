@@ -34,7 +34,7 @@ Base:
 
 Move to the work directory: `cd guide/policy`
 
-By commenting out / back in each test settings, run with `bash run.sh`.
+Run tests with `bash run.sh [test number]`.
 
 ## Used Policies
 
@@ -110,7 +110,7 @@ The result:
 
 ```sh
 error: Failed policy
-note: `Scope somewhere` 
+note: `Scope somewhere`
   failed because no element matched body conditions
 note: `For each "user_data" type marked user_data` (Rule 1)
   failed because of file_db_example::Image
@@ -159,7 +159,7 @@ The result is unexpected because the data of both user1 and user2 are not delete
 
 That's why it can pass the policy.
 
-In summary, Paralegal lacks a support for a policy similar to the below in order to deal with multiple instances: 
+In summary, Paralegal lacks a support for a policy similar to the below in order to deal with multiple instances:
 
 ```text
 Scope:
@@ -200,7 +200,7 @@ The result:
 
 ```sh
 error: Failed policy
-note: `Scope somewhere` 
+note: `Scope somewhere`
   failed because no element matched body conditions
 note: `For each "user_data" type marked user_data` (Rule 1)
   failed because of file_db_example::Image
@@ -232,10 +232,6 @@ note: does not go to
 This is the supplement test of the [toy case](#original-toy-case). Now it is complete because the error stack reaches `Rule 1.A.a.i` and tells us this function forgets to delete.
 
 ---
-
-### exp-a
-
-<span style="color:red">Daniel Part. Delete this when doing the merge.</span>
 
 ## Conclusion
 
