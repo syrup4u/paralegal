@@ -1,20 +1,15 @@
 use p2panda_core::{Body, Header, Operation, PrivateKey, Timestamp};
 
 #[derive(Debug)]
-#[paralegal::marker(user_data)]
+#[paralegal::marker(sensitive)]
 struct Message {
     content: Vec<u8>,
     author: String,
 }
 
-#[paralegal::marker(send, arguments = [0])]
+#[paralegal::marker(sink, arguments = [0])]
 fn publish(_operation: &Operation) {
     todo!()
-}
-
-#[paralegal::marker(publish_check, return)]
-fn allow_publish(msg: &Message) -> bool {
-    !msg.content.is_empty() && !msg.author.is_empty()
 }
 
 #[paralegal::analyze]
@@ -26,10 +21,7 @@ fn main() {
         author: "alice".to_string(),
     };
 
-    if !allow_publish(&msg) {
-        return;
-    }
-
+    // Route the message content through the library process marker.
     let body = Body::new(&msg.content);
     let mut header = Header {
         version: 1,
@@ -42,8 +34,6 @@ fn main() {
         backlink: None,
         extensions: (),
     };
-
-    // Header::sign is marked "sign" via external-annotations.toml
     header.sign(&private_key);
 
     let operation = Operation {

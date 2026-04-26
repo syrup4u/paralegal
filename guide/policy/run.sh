@@ -18,17 +18,36 @@ elif [ "$choice" == "3" ]; then
 elif [ "$choice" == "4" ]; then
     TARGET_DIR="../exp-4"
     POLICY_FILE="policy_ACB.txt"
-elif [ "$choice" == "a" ]; then
-    TARGET_DIR="../exp-a"
-    POLICY_FILE="policy_ACB.txt"
 elif [ "$choice" == "5" ]; then
     TARGET_DIR="../exp-5"
     POLICY_FILE="policy_ACB.txt"
+elif [ "$choice" == "a" ]; then
+    TARGET_DIR="../exp-a"
+    POLICY_FILE="policy_ACB.txt"
+    ANNOTATIONS="$TARGET_DIR/external-annotations.toml"
+elif [ "$choice" == "b" ]; then
+    TARGET_DIR="../exp-b"
+    POLICY_FILE="policy_AnotB.txt"
+    ANNOTATIONS="$TARGET_DIR/external-annotations.toml"
+elif [ "$choice" == "c" ]; then
+    TARGET_DIR="../exp-c"
+    POLICY_FILE="policy_ACB.txt"
+    ANNOTATIONS="$TARGET_DIR/external-annotations.toml"
+elif [ "$choice" == "d" ]; then
+    TARGET_DIR="../exp-d"
+    POLICY_FILE="policy_ACB.txt"
+    ANNOTATIONS="$TARGET_DIR/external-annotations.toml"
+elif [ "$choice" == "e" ]; then
+    TARGET_DIR="../exp-e"
+    POLICY_FILE="policy_AnotB.txt"
+    ANNOTATIONS="$TARGET_DIR/external-annotations.toml"
 else
     echo "Invalid choice."
     exit 1
 fi
 
+ANNOTATIONS="${ANNOTATIONS:-external-annotations.toml}"
+
 # Run
 sed -i 's/let p = Path::new(".*");/let p = Path::new("'$POLICY_FILE'");/' build.rs
-cargo run -- --external-annotations external-annotations.toml $TARGET_DIR
+cargo run -- --external-annotations $ANNOTATIONS $TARGET_DIR

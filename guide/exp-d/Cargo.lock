@@ -195,12 +195,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "exp-p2panda"
+name = "exp-p2panda-d"
 version = "0.1.0"
 dependencies = [
  "p2panda-core",
  "paralegal",
- "serde",
 ]
 
 [[package]]

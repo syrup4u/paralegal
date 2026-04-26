@@ -336,6 +336,8 @@ impl Body {
 
     /// Access the underlying body bytes.
     pub fn to_bytes(&self) -> Vec<u8> {
+        // BUG: accidental debug log leaks raw body content to stdout
+        println!("[DEBUG] Body::to_bytes: {:?}", self.0);
         self.0.clone()
     }
 
