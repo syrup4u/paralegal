@@ -1,0 +1,12 @@
+[package]
+name = "exp-p2panda-h"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+paralegal = { path = "../../crates/paralegal" }
+p2panda-core = { path = "../mark_lib/p2panda-core", default-features = false }
+p2panda-discovery = { path = "../mark_lib/p2panda-discovery" }
+p2panda-store = { path = "../mark_lib/p2panda-store", default-features = false }
+
+[workspace]
