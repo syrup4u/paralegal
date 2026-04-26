@@ -458,6 +458,9 @@ This is an ownership transfer (move) version of [exp-4](#exp-4). It still fails.
 
 ---
 
+TODO: Add tests for p2panda-core
+### exp-a
+
 ## Conclusion
 
 1. Paralegal still has some limitations, and it is hard to define an accurate policy.
