@@ -18,10 +18,25 @@ fn send(_token: &str) {
 
 fn fake_encode(_claims: &Claims) -> String {
     println!("{:?}", _claims);
-    todo!()
+    return _claims.aud.clone()
 }
 
 #[paralegal::analyze]
+fn analyze_func1(key: &[u8], my_claims: &Claims) {
+    let token = match encode(&Header::default(), &my_claims, &EncodingKey::from_secret(key)) {
+        Ok(t) => t,
+        Err(_) => panic!(), // in practice you would return the error
+    };
+    send(&token);
+}
+
+// Comment this back in to make the policy fail
+// #[paralegal::analyze]
+// fn analyze_func2(key: &[u8], my_claims: &Claims) {
+//     let token = fake_encode(&my_claims);
+//     send(&token);
+// }
+
 fn main() {
     let key = b"secret";
     let my_claims = Claims {
@@ -31,25 +46,5 @@ fn main() {
         exp: 10000000000,
     };
 
-    let token = fake_encode(&my_claims);
-    // let token = match encode(&Header::default(), &my_claims, &EncodingKey::from_secret(key)) {
-    //     Ok(t) => t,
-    //     Err(_) => panic!(), // in practice you would return the error
-    // };
-    send(&token);
-
-    // let mut validation = Validation::new(Algorithm::HS256);
-    // validation.sub = Some("b@b.com".to_string());
-    // validation.set_audience(&["me"]);
-    // validation.set_required_spec_claims(&["exp", "sub", "aud"]);
-    // let token_data = match decode::<Claims>(&token, &DecodingKey::from_secret(key), &validation) {
-    //     Ok(c) => c,
-    //     Err(err) => match *err.kind() {
-    //         ErrorKind::InvalidToken => panic!("Token is invalid"), // Example on how to handle a specific error
-    //         ErrorKind::InvalidIssuer => panic!("Issuer is invalid"), // Example on how to handle a specific error
-    //         _ => panic!("Some other errors"),
-    //     },
-    // };
-    // println!("{:?}", token_data.claims);
-    // println!("{:?}", token_data.header);
+    analyze_func1(key, &my_claims);
 }

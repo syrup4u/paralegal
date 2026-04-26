@@ -53,7 +53,7 @@ It lacks a way to handle this case. Refers to [exp-1](#exp-1) for more details a
 
 > `A goes to B only via C`, but C does not change the type of A.
 
-It cannot handle such recursion: after A being processed by C, a "new" A is "created" and thus if it goes to B, it fails because of "not via C". Figure below explains this scenario.
+It cannot handle such recursion: after A being processed by C, a "new" A is "created" and thus if it goes to B, it fails because of "not via C". Figure below explains this scenario. Refers to [exp-4](#exp-4) and [exp-5](#exp-5).
 
 ![fig02](./limit2.png)
 
@@ -65,8 +65,18 @@ It cannot handle such recursion: after A being processed by C, a "new" A is "cre
 ## Overall Results
 
 | Crate | LoC | Total Time | Marker | Functions |
+| --- | --- | --- | --- | --- |
 
 ## Explanation of Experiments
+
+| Exp | Desc |
+| -- | -- |
+| [Original Toy Case](#original-toy-case) | A toy case provided by Paralegal's author |
+| [exp-1](#exp-1) | For limitation 1 |
+| [exp-2](#exp-2) | A supplement of the official toy case |
+| [exp-3](#exp-3) | Some tests for `A goes to B only via C` policy |
+| [exp-4](#exp-4) | For limitation 2 |
+| [exp-5](#exp-5) | For limitation 2 |
 
 ### Original Toy Case
 
@@ -230,6 +240,221 @@ note: does not go to
 **Discussion:**
 
 This is the supplement test of the [toy case](#original-toy-case). Now it is complete because the error stack reaches `Rule 1.A.a.i` and tells us this function forgets to delete.
+
+### exp-3
+
+The source code:
+
+```rust
+#[paralegal::marker(sensitive)]
+struct Claims {
+    aud: String,
+    sub: String,
+    company: String,
+    exp: u64,
+}
+
+#[paralegal::marker(sink, arguments = [0])]
+fn send(_token: &str) {
+    todo!()
+}
+
+fn fake_encode(_claims: &Claims) -> String {
+    println!("{:?}", _claims);
+    todo!()
+}
+
+#[paralegal::analyze]
+fn main() {
+    let key = b"secret";
+    let my_claims = Claims {
+        aud: "me".to_owned(),
+        sub: "b@b.com".to_owned(),
+        company: "ACME".to_owned(),
+        exp: 10000000000,
+    };
+
+    // Comment this back in to make the policy fail
+    // let token = fake_encode(&my_claims);
+
+    // Comment this out to make the policy fail
+    let token = match encode(&Header::default(), &my_claims, &EncodingKey::from_secret(key)) {
+        Ok(t) => t,
+        Err(_) => panic!(), // in practice you would return the error
+    };
+
+    send(&token);
+}
+```
+
+The policy: `A goes to B via C` ([policy_ACB.txt](./guide/policy/policy_ACB.txt))
+
+```txt
+Scope:
+Everywhere
+
+Policy:
+1. Each "sensitive" marked sensitive goes to a "output" marked sink only via a "process" marked process
+```
+
+The command:
+
+```sh
+bash run.sh 4
+```
+
+Result 1: `Policy succeeded`
+
+Result 2 (comment back in and comment out), the error message may vary with multiple runs:
+
+```sh
+error: Failed policy
+note: `Scope everywhere` 
+  failed because of jwt_example::main
+note: `Each "sensitive" marked sensitive goes to a "output" marked sink only via a "process" marked process` (Rule 1)
+source
+  --> src/main.rs:20:5
+   |
+20 |     println!("{:?}", _claims);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+note: has data flow influence on this target without passing checkpoint
+  --> src/main.rs:35:29
+   |
+35 |     let token = fake_encode(&my_claims);
+   |                             ^^^^^^^^^^
+   |
+```
+
+**Discussion:**
+
+An experiment to see if `A goes to B only via C` works.
+
+### exp-4
+
+The source code:
+
+```rust
+#[paralegal::marker(sink, arguments = [0])]
+fn send(_token: &Claims) {
+    todo!()
+}
+
+#[paralegal::marker(process, arguments = [0])]
+fn process_claims(_claims: &mut Claims) {
+    _claims.exp = 0;
+}
+
+#[paralegal::analyze]
+fn analyze_func() {
+    let key = b"secret";
+    let mut my_claims = Claims {
+        aud: "me".to_owned(),
+        sub: "b@b.com".to_owned(),
+        company: "ACME".to_owned(),
+        exp: 10000000000,
+    };
+
+    process_claims(&mut my_claims);
+    send(&my_claims);
+}
+```
+
+The policy: `A goes to B via C` ([policy_ACB.txt](./guide/policy/policy_ACB.txt))
+
+The command:
+
+```sh
+bash run.sh 4
+```
+
+The result:
+
+```sh
+error: Failed policy
+note: `Scope everywhere` 
+  failed because of jwt_example::analyze_func
+note: `Each "sensitive" marked sensitive goes to a "output" marked sink only via a "process" marked process` (Rule 1)
+source
+  --> src/main.rs:35:5
+   |
+35 |     send(&my_claims);
+   |     ^^^^^^^^^^^^^^^^
+   |
+note: has data flow influence on this target without passing checkpoint
+  --> src/main.rs:35:5
+   |
+35 |     send(&my_claims);
+   |     ^^^^^^^^^^^^^^^^
+   |
+```
+
+**Discussion:**
+
+When applying the policy `A goes to B via C`, if C does not change the type of A, for example, by using mutable reference, it fails. A guess is a new "A" is created and it goes to B not via C.
+
+### exp-5
+
+The source code:
+
+```rust
+#[paralegal::marker(sink, arguments = [0])]
+fn send(_token: &Claims) {
+    todo!()
+}
+
+#[paralegal::marker(process, arguments = [0])]
+fn process_claims(mut _claims: Claims) -> Claims {
+    _claims.exp = 0;
+    _claims
+}
+
+#[paralegal::analyze]
+fn analyze_func() {
+    let key = b"secret";
+    let my_claims = Claims {
+        aud: "me".to_owned(),
+        sub: "b@b.com".to_owned(),
+        company: "ACME".to_owned(),
+        exp: 10000000000,
+    };
+    let after_claims = process_claims(my_claims);
+    send(&after_claims);
+}
+```
+
+The policy: `A goes to B via C` ([policy_ACB.txt](./guide/policy/policy_ACB.txt))
+
+The command:
+
+```sh
+bash run.sh 5
+```
+
+The result:
+
+```sh
+error: Failed policy
+note: `Scope everywhere` 
+  failed because of jwt_example::analyze_func
+note: `Each "sensitive" marked sensitive goes to a "output" marked sink only via a "process" marked process` (Rule 1)
+source
+  --> src/main.rs:35:5
+   |
+35 |     send(&after_claims);
+   |     ^^^^^^^^^^^^^^^^^^^
+   |
+note: has data flow influence on this target without passing checkpoint
+  --> src/main.rs:35:10
+   |
+35 |     send(&after_claims);
+   |          ^^^^^^^^^^^^^
+   |
+```
+
+**Discussion:**
+
+This is an ownership transfer (move) version of [exp-4](#exp-4). It still fails.
 
 ---
 
