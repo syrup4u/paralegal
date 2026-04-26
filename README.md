@@ -70,16 +70,21 @@ It cannot handle such recursion: after A being processed by C, a "new" A is "cre
 
 ## Explanation of Experiments
 
-| Exp | Desc |
-| -- | -- |
-| [Original Toy Case](#original-toy-case) | A toy case provided by Paralegal's author |
-| [exp-1](#exp-1) | For limitation 1 |
-| [exp-2](#exp-2) | A supplement of the official toy case |
-| [exp-3](#exp-3) | Some tests for `A goes to B only via C` policy |
-| [exp-4](#exp-4) | For limitation 2 |
-| [exp-5](#exp-5) | For limitation 2 |
-| [exp-6](#exp-6) | Some tests for cross-crate analysis and marker order |
-| [exp-6-extended](#exp-6-extended) | Tests for lib: `jsonwebtoken` |
+| Exp | Crate | Desc | Policy | Result |
+| -- | -- | -- | -- | -- |
+| [Original Toy Case](#original-toy-case) | n/a | A toy case provided by Paralegal's author | deletion | FAIL |
+| [exp-1](#exp-1) | n/a | For limitation 1 (cross-instance matching) | deletion | PASS (incorrect) |
+| [exp-2](#exp-2) | n/a | Supplement of the official toy case | deletion | FAIL |
+| [exp-3](#exp-3) | jsonwebtoken | Lib-based process (`encode`) before send | ACB | PASS |
+| [exp-4](#exp-4) | jsonwebtoken | For limitation 2 (`&mut` process) | ACB | FAIL (incorrect) |
+| [exp-5](#exp-5) | jsonwebtoken | For limitation 2 (move process) | ACB | FAIL (incorrect) |
+| [exp-6](#exp-6) | jsonwebtoken | Cross-crate analysis and marker order | AnotB | PASS (masked) |
+| [exp-6-extended](#exp-6-extended) | jsonwebtoken | Secret key leakage injections in library internals | AnotB | PASS / FAIL |
+| [exp-a](#exp-a) | p2panda-core | Lib-based process (`Body::new`) before publish | ACB | PASS |
+| [exp-b](#exp-b) | p2panda-core | Hidden lib bug: `Body::to_bytes` leaks raw bytes to stdout | AnotB | FAIL |
+| [exp-c](#exp-c) | p2panda-core | Harness-defined process before publish | ACB | PASS |
+| [exp-d](#exp-d) | p2panda-core | Two-instance: one correct path, one violation | ACB | FAIL |
+| [exp-e](#exp-e) | p2panda-core | Accidental debug log of sensitive data | AnotB | FAIL |
 
 ### Original Toy Case
 
@@ -689,8 +694,186 @@ Sometimes it cannot provide a precise location, especially when the function is 
 
 ---
 
-TODO: Add tests for p2panda-core
 ### exp-a
+
+The source code (`guide/exp-a/src/main.rs`):
+
+```rust
+#[paralegal::marker(sensitive)]
+struct Message { content: Vec<u8>, author: String }
+
+#[paralegal::marker(sink, arguments = [0])]
+fn publish(_operation: &Operation) { todo!() }
+
+#[paralegal::analyze]
+fn main() {
+    let msg = Message { content: b"Hello, network!".to_vec(), author: "alice".to_string() };
+    let body = Body::new(&msg.content); // Body::new marked process in mark_lib
+    let mut header = Header { ..., payload_size: body.size(), payload_hash: Some(body.hash()), ... };
+    header.sign(&private_key);
+    let operation = Operation { hash: header.hash(), header, body: Some(body) };
+    publish(&operation);
+}
+```
+
+The `process` marker is placed directly on `Body::new` in `mark_lib/p2panda-core` (a local annotated copy of the library). The command:
+
+```sh
+bash run.sh a
+```
+
+The result:
+
+```sh
+Policy succeeded
+```
+
+**Discussion:**
+
+Demonstrates the standard lib-analysis pattern for p2panda-core. `msg.content` (sensitive) flows directly into `Body::new` (process, in mark_lib) as argument 0, then through `Operation` to `publish` (sink). Mirrors exp-3's structure for jsonwebtoken.
+
+### exp-b
+
+This experiment tests that Paralegal can trace data flow **into library function bodies** and detect violations that are invisible from the calling code. A debug log bug is injected into `Body::to_bytes()` in `guide/mark_lib/p2panda-core/src/operation.rs`:
+
+```rust
+pub fn to_bytes(&self) -> Vec<u8> {
+    // BUG: accidental debug log leaks raw body content to stdout
+    println!("[DEBUG] Body::to_bytes: {:?}", self.0);
+    self.0.clone()
+}
+```
+
+The harness (`guide/exp-b/src/main.rs`) sends sensitive content through `Body::new` (process) and then calls a library helper. There is no harness-defined sink in this experiment:
+
+```rust
+use p2panda_core::Body;
+
+#[paralegal::marker(sensitive)]
+struct Message { content: Vec<u8> }
+
+#[paralegal::analyze]
+fn main() {
+    let msg = Message { content: b"Hello, network!".to_vec() };
+    let body = Body::new(&msg.content);  // process marker in mark_lib
+    let _raw = body.to_bytes();          // call into the injected library bug
+}
+```
+
+The command:
+
+```sh
+bash run.sh b
+```
+
+The result:
+
+```sh
+error: Failed policy
+note: `For each "output" marked sink` (Rule 1.A)
+note: `"sensitive" does not go to "output"` (Rule 1.A.a)
+note: this source [...main.rs:18] does go to [...std/src/macros.rs:143]
+```
+
+**Discussion:**
+
+The harness has no explicit sink. The violation is hidden inside `Body::to_bytes()` in the library. Paralegal traverses into the library function body and discovers that `body.0` (carrying data from the sensitive `msg.content`) flows through `to_bytes()` to `println!` (a sink via external annotations). The AnotB policy ("sensitive must never reach any sink") catches this. This demonstrates the core value of the `mark_lib` approach: annotate library internals to expose data flow violations that are invisible at the call site.
+
+### exp-c
+
+The source code (`guide/exp-c/src/main.rs`):
+
+```rust
+#[paralegal::marker(sensitive)]
+struct Message { content: Vec<u8>, author: String }
+
+#[paralegal::marker(process, arguments = [0])]
+fn encode_content(content: &[u8]) -> Vec<u8> { content.to_vec() }
+
+#[paralegal::marker(sink, arguments = [0])]
+fn publish_bytes(_data: &[u8]) { todo!() }
+
+#[paralegal::analyze]
+fn main() {
+    let msg = Message { content: b"Hello, network!".to_vec(), author: "alice".to_string() };
+    let encoded = encode_content(&msg.content);
+    publish_bytes(&encoded);
+}
+```
+
+The command:
+
+```sh
+bash run.sh c
+```
+
+The result:
+
+```sh
+Policy succeeded
+```
+
+**Discussion:**
+
+The `process` marker is on a harness-defined function rather than a library function. Analogous to partner's exp-4 goal but with a function that takes ownership of the data by value rather than mutable reference. Paralegal accepts harness-level markers as valid process checkpoints, confirming that library access is not required.
+
+### exp-d
+
+The source code (`guide/exp-d/src/main.rs`) has two `Message` instances: `msg1` takes the correct path through `Body::new` before `publish`, while `msg2` goes directly to `println!` without encoding.
+
+The command:
+
+```sh
+bash run.sh d
+```
+
+The result:
+
+```sh
+error: Failed policy
+note: `Each "sensitive" marked sensitive goes to a "output" marked sink only via a "process" marked process` (Rule 1)
+note: has data flow influence on this target without passing checkpoint
+```
+
+**Discussion:**
+
+Tests whether ACB's universal quantifier ("each sensitive") catches violations when one instance is clean and another is not. Unlike [exp-1](#exp-1) (which used an existential quantifier and cross-matched incorrectly), the ACB policy correctly fails because `msg2` reaches `println!` without going through `Body::new`. This shows that the cross-instance matching limitation from exp-1 is specific to existential quantifiers, not universal ones.
+
+### exp-e
+
+The source code (`guide/exp-e/src/main.rs`):
+
+```rust
+#[paralegal::marker(sensitive)]
+struct Message { content: Vec<u8>, author: String }
+
+#[paralegal::analyze]
+fn main() {
+    let msg = Message { content: b"Hello, network!".to_vec(), author: "alice".to_string() };
+    // Accidental debug log: sensitive data reaches println.
+    println!("Sending message from {}: {:?}", msg.author, msg.content);
+}
+```
+
+Policy: `A does not go to B` ([policy_AnotB.txt](./guide/policy/policy_AnotB.txt))
+
+The command:
+
+```sh
+bash run.sh e
+```
+
+The result:
+
+```sh
+error: Failed policy
+note: `"sensitive" does not go to "output"` (Rule 1.A.a)
+note: does go to
+```
+
+**Discussion:**
+
+Uses the AnotB policy to catch accidental leakage of sensitive data to stdout via a debug log. No `publish` sink is defined in the harness; only the stdlib I/O functions are marked as sinks via `external-annotations.toml`. Paralegal detects that `msg.content` and `msg.author` reach `println!` and correctly fails the policy.
 
 ## Conclusion
 
