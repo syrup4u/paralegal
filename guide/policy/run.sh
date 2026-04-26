@@ -21,6 +21,10 @@ elif [ "$choice" == "4" ]; then
 elif [ "$choice" == "5" ]; then
     TARGET_DIR="../exp-5"
     POLICY_FILE="policy_ACB.txt"
+elif [ "$choice" == "6" ]; then
+    TARGET_DIR="../exp-6"
+    POLICY_FILE="policy_AnotB.txt"
+    ANNOTATIONS="$TARGET_DIR/external-annotations.toml"
 elif [ "$choice" == "a" ]; then
     TARGET_DIR="../exp-a"
     POLICY_FILE="policy_ACB.txt"
@@ -41,9 +45,13 @@ elif [ "$choice" == "e" ]; then
     TARGET_DIR="../exp-e"
     POLICY_FILE="policy_AnotB.txt"
     ANNOTATIONS="$TARGET_DIR/external-annotations.toml"
-elif [ "$choice" == "6" ]; then
-    TARGET_DIR="../exp-6"
-    POLICY_FILE="policy_AnotB.txt"
+elif [ "$choice" == "f" ]; then
+    TARGET_DIR="../exp-f"
+    POLICY_FILE="policy_exists_process_sink.txt"
+    ANNOTATIONS="$TARGET_DIR/external-annotations.toml"
+elif [ "$choice" == "g" ]; then
+    TARGET_DIR="../exp-g"
+    POLICY_FILE="policy_ACB.txt"
     ANNOTATIONS="$TARGET_DIR/external-annotations.toml"
 else
     echo "Invalid choice."
