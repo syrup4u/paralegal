@@ -46,6 +46,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "exp-6"
+version = "0.1.0"
+dependencies = [
+ "jsonwebtoken",
+ "paralegal",
+ "serde",
+ "time",
+]
+
+[[package]]
 name = "find-msvc-tools"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -86,21 +96,12 @@ version = "9.3.1"
 dependencies = [
  "base64",
  "js-sys",
+ "paralegal",
  "pem",
  "ring",
  "serde",
  "serde_json",
  "simple_asn1",
-]
-
-[[package]]
-name = "jwt-example"
-version = "0.1.0"
-dependencies = [
- "jsonwebtoken",
- "paralegal",
- "serde",
- "time",
 ]
 
 [[package]]

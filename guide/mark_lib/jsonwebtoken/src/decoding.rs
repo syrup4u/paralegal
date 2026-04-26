@@ -41,7 +41,8 @@ macro_rules! expect_two {
     }};
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
+#[paralegal::marker(sensitive)]
 pub(crate) enum DecodingKeyKind {
     SecretOrDer(Vec<u8>),
     RsaModulusExponent { n: Vec<u8>, e: Vec<u8> },
@@ -49,7 +50,7 @@ pub(crate) enum DecodingKeyKind {
 
 /// All the different kind of keys we can use to decode a JWT.
 /// This key can be re-used so make sure you only initialize it once if you can for better performance.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct DecodingKey {
     pub(crate) family: AlgorithmFamily,
     pub(crate) kind: DecodingKeyKind,
@@ -265,6 +266,8 @@ pub fn decode<T: DeserializeOwned>(
             let decoded_claims = DecodedJwtPartClaims::from_jwt_part_claims(claims)?;
             let claims = decoded_claims.deserialize()?;
             validate(decoded_claims.deserialize()?, validation)?;
+
+            // println!("Decoded key: {:?}", key);
 
             Ok(TokenData { header, claims })
         }
