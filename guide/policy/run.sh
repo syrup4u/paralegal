@@ -24,6 +24,9 @@ elif [ "$choice" == "5" ]; then
 elif [ "$choice" == "6" ]; then
     TARGET_DIR="../exp-6"
     POLICY_FILE="policy_AnotB.txt"
+elif [ "$choice" == "7" ]; then
+    TARGET_DIR="../exp-7"
+    POLICY_FILE="policy_AnotB.txt"
 else
     echo "Invalid choice."
     exit 1

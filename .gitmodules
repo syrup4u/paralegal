@@ -4,3 +4,6 @@
 [submodule "guide/lib/p2panda"]
 	path = guide/lib/p2panda
 	url = git@github.com:p2panda/p2panda.git
+[submodule "guide/lib/rustls"]
+	path = guide/lib/rustls
+	url = https://github.com/rustls/rustls.git
