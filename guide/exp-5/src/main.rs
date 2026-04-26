@@ -17,22 +17,22 @@ fn send(_token: &Claims) {
 }
 
 #[paralegal::marker(process, arguments = [0])]
-fn process_claims(_claims: &mut Claims) {
+fn process_claims(mut _claims: Claims) -> Claims {
     _claims.exp = 0;
+    _claims
 }
 
 #[paralegal::analyze]
 fn analyze_func() {
     let key = b"secret";
-    let mut my_claims = Claims {
+    let my_claims = Claims {
         aud: "me".to_owned(),
         sub: "b@b.com".to_owned(),
         company: "ACME".to_owned(),
         exp: 10000000000,
     };
-
-    process_claims(&mut my_claims);
-    send(&my_claims);
+    let after_claims = process_claims(my_claims);
+    send(&after_claims);
 }
 
 fn main() {
