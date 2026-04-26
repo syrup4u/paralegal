@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 paralegal = { path = "../../crates/paralegal" }
-jsonwebtoken = { path = "../lib/jsonwebtoken" }
+jsonwebtoken = { path = "../mark_lib/jsonwebtoken" }
 serde = { version = "1.0", features = ["derive"] }
 time = "=0.3.35"
 
