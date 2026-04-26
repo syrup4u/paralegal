@@ -64,8 +64,9 @@ It cannot handle such recursion: after A being processed by C, a "new" A is "cre
 
 ## Overall Results
 
-| Crate | LoC | Total Time | Marker | Functions |
+| Crate | LoC | Total Time | Marker | PDG / Seen Functions |
 | --- | --- | --- | --- | --- |
+| `jsonwebtoken` | 3,847 | 32.957 s | 7 | 10 / 341 |
 
 ## Explanation of Experiments
 
@@ -77,6 +78,8 @@ It cannot handle such recursion: after A being processed by C, a "new" A is "cre
 | [exp-3](#exp-3) | Some tests for `A goes to B only via C` policy |
 | [exp-4](#exp-4) | For limitation 2 |
 | [exp-5](#exp-5) | For limitation 2 |
+| [exp-6](#exp-6) | Some tests for cross-crate analysis and marker order |
+| [exp-6-extended](#exp-6-extended) | Tests for lib: `jsonwebtoken` |
 
 ### Original Toy Case
 
