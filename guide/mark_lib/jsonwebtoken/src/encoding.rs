@@ -11,7 +11,8 @@ use crate::serialization::b64_encode_part;
 
 /// A key to encode a JWT with. Can be a secret, a PEM-encoded key or a DER-encoded key.
 /// This key can be re-used so make sure you only initialize it once if you can for better performance.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
+#[paralegal::marker(sensitive)]
 pub struct EncodingKey {
     pub(crate) family: AlgorithmFamily,
     content: Vec<u8>,
@@ -118,7 +119,6 @@ impl EncodingKey {
 /// // This will create a JWT using HS256 as algorithm
 /// let token = encode(&Header::default(), &my_claims, &EncodingKey::from_secret("secret".as_ref())).unwrap();
 /// ```
-#[paralegal::marker(process, arguments = [1])]
 pub fn encode<T: Serialize>(header: &Header, claims: &T, key: &EncodingKey) -> Result<String> {
     if key.family != header.alg.family() {
         return Err(new_error(ErrorKind::InvalidAlgorithm));
@@ -127,6 +127,8 @@ pub fn encode<T: Serialize>(header: &Header, claims: &T, key: &EncodingKey) -> R
     let encoded_claims = b64_encode_part(claims)?;
     let message = [encoded_header, encoded_claims].join(".");
     let signature = crypto::sign(message.as_bytes(), key, header.alg)?;
+
+    // println!("Encoding key: {:?}", key);
 
     Ok([message, signature].join("."))
 }

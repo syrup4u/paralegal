@@ -64,8 +64,9 @@ It cannot handle such recursion: after A being processed by C, a "new" A is "cre
 
 ## Overall Results
 
-| Crate | LoC | Total Time | Marker | Functions |
+| Crate | LoC | Total Time | Marker | PDG / Seen Functions |
 | --- | --- | --- | --- | --- |
+| `jsonwebtoken` | 3,847 | 32.957 s | 7 | 10 / 341 |
 
 ## Explanation of Experiments
 
@@ -77,6 +78,8 @@ It cannot handle such recursion: after A being processed by C, a "new" A is "cre
 | [exp-3](#exp-3) | Some tests for `A goes to B only via C` policy |
 | [exp-4](#exp-4) | For limitation 2 |
 | [exp-5](#exp-5) | For limitation 2 |
+| [exp-6](#exp-6) | Some tests for cross-crate analysis and marker order |
+| [exp-6-extended](#exp-6-extended) | Tests for lib: `jsonwebtoken` |
 
 ### Original Toy Case
 
@@ -455,6 +458,234 @@ note: has data flow influence on this target without passing checkpoint
 **Discussion:**
 
 This is an ownership transfer (move) version of [exp-4](#exp-4). It still fails.
+
+### exp-6
+
+The source code:
+
+```rust
+#[derive(Clone, Debug)]
+#[paralegal::marker(sensitive)]
+pub struct EncodingKey {
+    pub(crate) family: AlgorithmFamily,
+    content: Vec<u8>,
+}
+
+#[paralegal::marker(process, arguments = [1])]
+pub fn encode<T: Serialize>(header: &Header, claims: &T, key: &EncodingKey) -> Result<String> {
+    if key.family != header.alg.family() {
+        return Err(new_error(ErrorKind::InvalidAlgorithm));
+    }
+    let encoded_header = b64_encode_part(header)?;
+    let encoded_claims = b64_encode_part(claims)?;
+    let message = [encoded_header, encoded_claims].join(".");
+    let signature = crypto::sign(message.as_bytes(), key, header.alg)?;
+
+    println!("Encoding key: {:?}", key);
+
+    Ok([message, signature].join("."))
+}
+```
+
+External Marker:
+
+```toml
+[["std::io::_print"]]
+marker = "sink"
+on_argument = [0]
+
+[["std::io::_eprint"]]
+marker = "sink"
+on_argument = [0]
+
+[["alloc::fmt::format"]]
+marker = "sink"
+on_argument = [0]
+
+[["std::io::Write::write_fmt"]]
+marker = "sink"
+on_argument = [1]
+```
+
+The policy: `A does not go to B`
+
+```txt
+Scope:
+Everywhere
+
+Policy:
+1. For each "sensitive" marked sensitive:
+    A. For each "output" marked sink:
+        a. "sensitive" does not go to "output"
+```
+
+The command:
+
+```sh
+bash run.sh 6
+```
+
+Result 1:
+
+```sh
+warning: Marker sink is mentioned in the policy but not defined in source
+
+Policy succeeded
+```
+
+Result 2 (after commenting out the marker for "process", i.e., `#[paralegal::marker(process, arguments = [1])]`):
+
+```sh
+note: `"sensitive" does not go to "output"` (Rule 1.A.a)
+this source
+   --> /users/syrup/zzz/paralegal/guide/mark_lib/jsonwebtoken/src/encoding.rs:123:1
+    |
+123 | pub fn encode<T: Serialize>(header: &Header, claims: &T, key: &EncodingKey) -> Result<String> {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+note: does go to
+   --> /users/syrup/.rustup/toolchains/nightly-2024-12-15-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/macros.rs:143:9
+    |
+143 |         $crate::io::_print($crate::format_args_nl!($($arg)*));
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+```
+
+**Discussion:**
+
+It takes some time to figure it out. At first I thought it might be a problem, but it is mentioned in Paralegal's [document](https://justus-adam.notion.site/Dependency-Analysis-0e3b66b097754c91acfcca7c6231b5f4#22f18990e0e9801382a2ce674acd921e): a rule applied automatically when creating a PDG. Check out the second rule in its "Cross-Crate Analysis" section. The inner markers would be masked by the outermost marker.
+
+### exp-6-extended
+
+After commenting out the marker for "process", two cases are tested:
+
+- No `io.write` / `println` are injected.
+- Inject `println` to `encode` and `decode` to see if secret key leakage can be detected.
+
+The source code:
+
+```rust
+pub fn sign(message: &[u8], key: &EncodingKey, algorithm: Algorithm) -> Result<String> {
+    println!("Key is: {:?}", key);
+    match algorithm {
+        Algorithm::HS256 => Ok(sign_hmac(hmac::HMAC_SHA256, key.inner(), message)),
+        Algorithm::HS384 => Ok(sign_hmac(hmac::HMAC_SHA384, key.inner(), message)),
+        Algorithm::HS512 => Ok(sign_hmac(hmac::HMAC_SHA512, key.inner(), message)),
+
+        Algorithm::ES256 | Algorithm::ES384 => {
+            ecdsa::sign(ecdsa::alg_to_ec_signing(algorithm), key.inner(), message)
+        }
+
+        Algorithm::EdDSA => eddsa::sign(key.inner(), message),
+
+        Algorithm::RS256
+        | Algorithm::RS384
+        | Algorithm::RS512
+        | Algorithm::PS256
+        | Algorithm::PS384
+        | Algorithm::PS512 => rsa::sign(rsa::alg_to_rsa_signing(algorithm), key.inner(), message),
+    }
+}
+
+pub fn encode<T: Serialize>(header: &Header, claims: &T, key: &EncodingKey) -> Result<String> {
+    if key.family != header.alg.family() {
+        return Err(new_error(ErrorKind::InvalidAlgorithm));
+    }
+    let encoded_header = b64_encode_part(header)?;
+    let encoded_claims = b64_encode_part(claims)?;
+    let message = [encoded_header, encoded_claims].join(".");
+    let signature = crypto::sign(message.as_bytes(), key, header.alg)?;
+
+    println!("Encoding key: {:?}", key);
+
+    Ok([message, signature].join("."))
+}
+
+pub fn decode<T: DeserializeOwned>(
+    token: &str,
+    key: &DecodingKey,
+    validation: &Validation,
+) -> Result<TokenData<T>> {
+    match verify_signature(token, key, validation) {
+        Err(e) => Err(e),
+        Ok((header, claims)) => {
+            let decoded_claims = DecodedJwtPartClaims::from_jwt_part_claims(claims)?;
+            let claims = decoded_claims.deserialize()?;
+            validate(decoded_claims.deserialize()?, validation)?;
+
+            println!("Decoded key: {:?}", key);
+
+            Ok(TokenData { header, claims })
+        }
+    }
+}
+```
+
+The command:
+
+```sh
+bash run.sh 6
+```
+
+Result 1 (No injection):
+
+```sh
+warning: Marker sink is mentioned in the policy but not defined in source
+
+Policy succeeded
+```
+
+Result 2 (Any injection, result may vary, only shows two of them):
+
+```sh
+error: Failed policy
+...
+note: `"sensitive" does not go to "output"` (Rule 1.A.a)
+this source
+   --> /users/syrup/zzz/paralegal/guide/mark_lib/jsonwebtoken/src/decoding.rs:208:1
+    |
+208 | fn verify_signature<'a>(
+    | ^^^^^^^^^^^^^^^^^^^^^^^^
+209 |     token: &'a str,
+    |     ^^^^^^^^^^^^^^^
+210 |     key: &DecodingKey,
+    |     ^^^^^^^^^^^^^^^^^^
+211 |     validation: &Validation,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+212 | ) -> Result<(Header, &'a str)> {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+note: does go to
+   --> /users/syrup/.rustup/toolchains/nightly-2024-12-15-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/macros.rs:143:9
+    |
+143 |         $crate::io::_print($crate::format_args_nl!($($arg)*));
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+```
+
+or
+
+```sh
+error: Failed policy
+...
+note: `"sensitive" does not go to "output"` (Rule 1.A.a)
+this source
+  --> /users/syrup/zzz/paralegal/guide/mark_lib/jsonwebtoken/src/encoding.rs:24:9
+   |
+24 |         EncodingKey { family: AlgorithmFamily::Hmac, content: secret.to_vec() }
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+note: does go to
+   --> /users/syrup/.rustup/toolchains/nightly-2024-12-15-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/macros.rs:143:9
+    |
+143 |         $crate::io::_print($crate::format_args_nl!($($arg)*));
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+```
+
+**Discussion:**
+
+Sometimes it cannot provide a precise location, especially when the function is deeper. But overall it can detect cross-crate policy violation, which means it can be used to analyze libraries.
 
 ---
 

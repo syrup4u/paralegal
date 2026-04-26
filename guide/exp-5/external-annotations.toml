@@ -13,3 +13,7 @@ on_argument = [0]
 [["std::io::Write::write_fmt"]]
 marker = "sink"
 on_argument = [1]
+
+[["jsonwebtoken::encode"]]
+marker = "process"
+on_argument = [1]

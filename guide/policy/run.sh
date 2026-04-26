@@ -41,6 +41,10 @@ elif [ "$choice" == "e" ]; then
     TARGET_DIR="../exp-e"
     POLICY_FILE="policy_AnotB.txt"
     ANNOTATIONS="$TARGET_DIR/external-annotations.toml"
+elif [ "$choice" == "6" ]; then
+    TARGET_DIR="../exp-6"
+    POLICY_FILE="policy_AnotB.txt"
+    ANNOTATIONS="$TARGET_DIR/external-annotations.toml"
 else
     echo "Invalid choice."
     exit 1
