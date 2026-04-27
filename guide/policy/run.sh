@@ -25,6 +25,9 @@ elif [ "$choice" == "6" ]; then
     TARGET_DIR="../exp-6"
     POLICY_FILE="policy_AnotB.txt"
     ANNOTATIONS="$TARGET_DIR/external-annotations.toml"
+elif [ "$choice" == "7" ]; then
+    TARGET_DIR="../exp-7"
+    POLICY_FILE="policy_AnotB.txt"
 elif [ "$choice" == "a" ]; then
     TARGET_DIR="../exp-a"
     POLICY_FILE="policy_ACB.txt"

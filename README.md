@@ -10,6 +10,7 @@ This repo includes experiments for Paralegal.
 ## Target Libraries
 
 - [jsonwebtoken](https://github.com/Keats/jsonwebtoken/tree/master)
+- [rustls](https://github.com/rustls/rustls)
 - [p2panda](https://github.com/p2panda/p2panda/tree/main)
 
 ## Rust Installation
@@ -66,7 +67,8 @@ It cannot handle such recursion: after A being processed by C, a "new" A is "cre
 
 | Crate | LoC | Total Time | Marker | PDG / Seen Functions |
 | --- | --- | --- | --- | --- |
-| `jsonwebtoken` | 3,847 | 32.957 s | 7 | 10 / 341 |
+| `jsonwebtoken` | 3,847 | 32.957 s | 6 | 10 / 849 |
+| `rustls` | 67,288 | 11.909 s | 7 | 5 / 442 |
 | `p2panda-core` | 3,404 | 12.820 s | 7 | 1 / 323 |
 | `p2panda-discovery` | 1,602 | 14.258 s | 7 | 2 / 9 |
 
@@ -92,6 +94,20 @@ It cannot handle such recursion: after A being processed by C, a "new" A is "cre
 | [exp-h](#exp-h) | p2panda-discovery | Lib-based process (`hash_vector`) before protocol message | ACB | PASS |
 | [exp-i](#exp-i) | p2panda-discovery | Hidden lib bug: `validate_topics` leaks raw topics to stdout | AnotB | FAIL |
 | [exp-j](#exp-j) | p2panda-discovery | Bypass violation: raw topics sent to broadcast without hashing | ACB | FAIL |
+
+## Explanation of Experiments
+
+| Exp | Desc |
+| -- | -- |
+| [Original Toy Case](#original-toy-case) | A toy case provided by Paralegal's author |
+| [exp-1](#exp-1) | For limitation 1 |
+| [exp-2](#exp-2) | A supplement of the official toy case |
+| [exp-3](#exp-3) | Some tests for `A goes to B only via C` policy |
+| [exp-4](#exp-4) | For limitation 2 |
+| [exp-5](#exp-5) | For limitation 2 |
+| [exp-6](#exp-6) | Some tests for cross-crate analysis and marker order |
+| [exp-6-extended](#exp-6-extended) | Tests for lib: `jsonwebtoken` |
+| [exp-7](#exp-7) | Tests for lib: `rustls` |
 
 ### Original Toy Case
 
@@ -698,6 +714,89 @@ note: does go to
 **Discussion:**
 
 Sometimes it cannot provide a precise location, especially when the function is deeper. But overall it can detect cross-crate policy violation, which means it can be used to analyze libraries.
+
+### exp-7
+
+Target crate: `rustls`
+
+The source code:
+
+```rust
+#[paralegal::marker(sink, arguments = [0])]
+fn reveal_secrets(secrets: ExtractedSecrets) {
+    todo!();
+}
+
+#[paralegal::analyze]
+fn analyze() {
+    ...
+    let secrets = conn.dangerous_extract_secrets().unwrap();
+    reveal_secrets(secrets);
+    ...
+}
+
+/// Secrets used to encrypt/decrypt data in a TLS session.
+///
+/// These can be used to configure kTLS for a socket in one direction.
+/// The only other piece of information needed is the sequence number,
+/// which is in [ExtractedSecrets].
+#[non_exhaustive]
+#[paralegal::marker(sensitive)]
+pub enum ConnectionTrafficSecrets {
+    /// Secrets for the AES_128_GCM AEAD algorithm
+    Aes128Gcm {
+        /// AEAD Key
+        key: AeadKey,
+        /// Initialization vector
+        iv: Iv,
+    },
+    ...
+}
+```
+
+The command:
+
+```sh
+bash run.sh 7
+```
+
+The Result (with injection):
+
+```sh
+error: Failed policy
+note: `Scope everywhere` 
+  failed because of exp_7::analyze
+note: `For each "output" marked sink` (Rule 1.A)
+failed because of this element
+  --> src/main.rs:64:5
+   |
+64 |     reveal_secrets(secrets);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^
+   |
+note: `"sensitive" does not go to "output"` (Rule 1.A.a)
+this source
+   --> /users/syrup/zzz/paralegal/guide/mark_lib/rustls/rustls/src/conn.rs:440:9
+    |
+440 |         Ok(ExtractedSecrets {
+    |         ^^^^^^^^^^^^^^^^^^^^^
+441 |             tx: (record_layer.write_seq(), tx),
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+442 |             rx: (record_layer.read_seq(), rx),
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+443 |         })
+    |         ^^
+    |
+note: does go to
+  --> src/main.rs:64:5
+   |
+64 |     reveal_secrets(secrets);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^
+   |
+```
+
+**Discussion:**
+
+The `reveal_secrets` is an injected function, but `ExtractedSecrets` or `dangerous_extract_secrets` is implemented by `rustls`, which has chance to be used wrongly.
 
 ---
 
