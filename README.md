@@ -67,10 +67,12 @@ It cannot handle such recursion: after A being processed by C, a "new" A is "cre
 
 | Crate | LoC | Total Time | Marker | PDG / Seen Functions |
 | --- | --- | --- | --- | --- |
-| `jsonwebtoken` | 3,847 | 32.957 s | 6 | 10 / 849 |
-| `rustls` | 67,288 | 11.909 s | 7 | 5 / 442 |
-| `p2panda-core` | 3,404 | 12.820 s | 7 | 1 / 323 |
-| `p2panda-discovery` | 1,602 | 14.258 s | 7 | 2 / 9 |
+| `jsonwebtoken` | 3,847 | 12.545 s | 6 | 10 / 849 |
+| `rustls` | 67,288 | 5.128 s | 7 | 5 / 442 |
+| `p2panda-core` | 3,404 | 12.744 s | 7 | 1 / 323 |
+| `p2panda-discovery` | 1,602 | 14.394 s | 7 | 2 / 9 |
+
+Hardware specs: We ran these experiments on a machine with 32 CPU cores, with 13th Gen Intel(R) Core(TM) i9-13900K.
 
 ## Explanation of Experiments
 
@@ -84,6 +86,7 @@ It cannot handle such recursion: after A being processed by C, a "new" A is "cre
 | [exp-5](#exp-5) | jsonwebtoken | For limitation 2 (move process) | ACB | FAIL (incorrect) |
 | [exp-6](#exp-6) | jsonwebtoken | Cross-crate analysis and marker order | AnotB | PASS (masked) |
 | [exp-6-extended](#exp-6-extended) | jsonwebtoken | Secret key leakage injections in library internals | AnotB | PASS / FAIL |
+| [exp-7](#exp-7) | rustls | Tests for lib: `rustls` | AnotB | FAIL |
 | [exp-a](#exp-a) | p2panda-core | Lib-based process (`Body::new`) before publish | ACB | PASS |
 | [exp-b](#exp-b) | p2panda-core | Hidden lib bug: `Body::to_bytes` leaks raw bytes to stdout | AnotB | FAIL |
 | [exp-c](#exp-c) | p2panda-core | Harness-defined process before publish | ACB | PASS |
@@ -94,20 +97,6 @@ It cannot handle such recursion: after A being processed by C, a "new" A is "cre
 | [exp-h](#exp-h) | p2panda-discovery | Lib-based process (`hash_vector`) before protocol message | ACB | PASS |
 | [exp-i](#exp-i) | p2panda-discovery | Hidden lib bug: `validate_topics` leaks raw topics to stdout | AnotB | FAIL |
 | [exp-j](#exp-j) | p2panda-discovery | Bypass violation: raw topics sent to broadcast without hashing | ACB | FAIL |
-
-## Explanation of Experiments
-
-| Exp | Desc |
-| -- | -- |
-| [Original Toy Case](#original-toy-case) | A toy case provided by Paralegal's author |
-| [exp-1](#exp-1) | For limitation 1 |
-| [exp-2](#exp-2) | A supplement of the official toy case |
-| [exp-3](#exp-3) | Some tests for `A goes to B only via C` policy |
-| [exp-4](#exp-4) | For limitation 2 |
-| [exp-5](#exp-5) | For limitation 2 |
-| [exp-6](#exp-6) | Some tests for cross-crate analysis and marker order |
-| [exp-6-extended](#exp-6-extended) | Tests for lib: `jsonwebtoken` |
-| [exp-7](#exp-7) | Tests for lib: `rustls` |
 
 ### Original Toy Case
 
