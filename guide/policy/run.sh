@@ -57,6 +57,14 @@ elif [ "$choice" == "h" ]; then
     TARGET_DIR="../exp-h"
     POLICY_FILE="policy_ACB.txt"
     ANNOTATIONS="$TARGET_DIR/external-annotations.toml"
+elif [ "$choice" == "i" ]; then
+    TARGET_DIR="../exp-i"
+    POLICY_FILE="policy_AnotB.txt"
+    ANNOTATIONS="$TARGET_DIR/external-annotations.toml"
+elif [ "$choice" == "j" ]; then
+    TARGET_DIR="../exp-j"
+    POLICY_FILE="policy_ACB.txt"
+    ANNOTATIONS="$TARGET_DIR/external-annotations.toml"
 else
     echo "Invalid choice."
     exit 1

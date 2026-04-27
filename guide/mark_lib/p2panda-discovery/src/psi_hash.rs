@@ -340,6 +340,15 @@ pub fn hash_vector(topics: &[Topic], salt: &[u8; 65]) -> Result<Vec<Topic>, std:
         .collect()
 }
 
+/// Pre-flight validation of topics before a PSI session.
+///
+/// Returns the number of valid topics provided.
+pub fn validate_topics(topics: &[Topic]) -> usize {
+    // BUG: debug log accidentally leaks raw topic values to stdout
+    println!("[DEBUG] validate_topics: {:?}", topics);
+    topics.len()
+}
+
 /// Hash a topic with a salt using blake3.
 fn hash(data: &[u8; 32], salt: &[u8; 65]) -> Result<[u8; 32], std::io::Error> {
     let mut hash = blake3::Hasher::new();
