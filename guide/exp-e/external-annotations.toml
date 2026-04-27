@@ -1,0 +1,15 @@
+[["std::io::_print"]]
+marker = "sink"
+on_argument = [0]
+
+[["std::io::_eprint"]]
+marker = "sink"
+on_argument = [0]
+
+[["alloc::fmt::format"]]
+marker = "sink"
+on_argument = [0]
+
+[["std::io::Write::write_fmt"]]
+marker = "sink"
+on_argument = [1]
