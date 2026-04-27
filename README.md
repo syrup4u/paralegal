@@ -697,6 +697,36 @@ Target crate: `rustls`
 The source code:
 
 ```rust
+#[paralegal::marker(sink, arguments = [0])]
+fn reveal_secrets(secrets: ExtractedSecrets) {
+    todo!();
+}
+
+#[paralegal::analyze]
+fn analyze() {
+    ...
+    let secrets = conn.dangerous_extract_secrets().unwrap();
+    reveal_secrets(secrets);
+    ...
+}
+
+/// Secrets used to encrypt/decrypt data in a TLS session.
+///
+/// These can be used to configure kTLS for a socket in one direction.
+/// The only other piece of information needed is the sequence number,
+/// which is in [ExtractedSecrets].
+#[non_exhaustive]
+#[paralegal::marker(sensitive)]
+pub enum ConnectionTrafficSecrets {
+    /// Secrets for the AES_128_GCM AEAD algorithm
+    Aes128Gcm {
+        /// AEAD Key
+        key: AeadKey,
+        /// Initialization vector
+        iv: Iv,
+    },
+    ...
+}
 ```
 
 The command:
